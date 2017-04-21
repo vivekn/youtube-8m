@@ -234,3 +234,30 @@ class LstmModel(models.BaseModel):
         model_input=state[-1].h,
         vocab_size=vocab_size,
         **unused_params)
+
+
+class AvgPoolLSTM(models.BaseModel):
+
+    def create_model(self,
+        model_input,
+        vocab_size,
+        num_frames,
+        pool_window=10,
+        l2_penalty=1e-8,
+        **unused_params):
+        current_shape = model_input.get_shape().as_list()
+        input_4d = tf.reshape(model_input, [-1, current_shape[1], current_shape[2], 1])
+        pooled_input = tf.squeeze(tf.nn.avg_pool(input_4d,
+            [1, pool_window, 1, 1], [1, pool_window, 1, 1], 'VALID'), axis=[3])
+        num_frames_scaled = tf.to_int32(
+            tf.ceil(tf.to_float(num_frames) / pool_window))
+
+        lstm_size = FLAGS.lstm_cells
+        lstm_cell = tf.contrib.rnn.BasicLSTMCell(lstm_size, forget_bias=1.0)
+        outputs, state = tf.nn.dynamic_rnn(lstm_cell, pooled_input,
+            sequence_length=num_frames_scaled, dtype=tf.float32)
+
+        output = slim.fully_connected(
+            outputs[-1], vocab_size, activation_fn=tf.nn.sigmoid,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+        return {"predictions": output}
