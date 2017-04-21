@@ -242,7 +242,7 @@ class AvgPoolLSTM(models.BaseModel):
         model_input,
         vocab_size,
         num_frames,
-        pool_window=10,
+        pool_window=20,
         l2_penalty=1e-8,
         **unused_params):
         current_shape = model_input.get_shape().as_list()
