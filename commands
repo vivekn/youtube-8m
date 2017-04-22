@@ -102,3 +102,21 @@ submit training $JOB_NAME \
 --batch_size=256 \
 --base_learning_rate="0.0002" \
 --lstm_cells=256
+
+# ConvolutionalLSTM
+JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord' \
+--model=ConvolutionalLSTM \
+--num_epochs=3 \
+--train_dir=$BUCKET_NAME/yt8m_frame_level_conv_lstm_model \
+--feature_names="rgb, audio" \
+--frame_features=True \
+--feature_sizes="1024, 128" \
+--batch_size=256 \
+--base_learning_rate="0.0002" \
+--lstm_cells=512
