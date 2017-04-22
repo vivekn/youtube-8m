@@ -63,7 +63,8 @@ python train.py \
 --feature_sizes="1024, 128" \
 --model=AvgPoolLSTM \
 --num_epochs=1 \
---train_dir='../train_frame/'
+--train_dir='../train_frame/3' \
+--batch_size=128
 
 # Avg pool lstm model
 
