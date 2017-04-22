@@ -77,8 +77,9 @@ submit training $JOB_NAME \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord' \
 --model=AvgPoolLSTM \
 --num_epochs=1 \
---train_dir=$BUCKET_NAME/yt8m_train_video_level_avgpool_lstm_model \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_avgpool_lstm_model_v2 \
 --feature_names="rgb, audio" \
 --frame_features=True \
 --feature_sizes="1024, 128" \
---batch_size=128
+--batch_size=128 \
+--base_learning_rate="0.002"
