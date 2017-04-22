@@ -20,6 +20,15 @@ from tensorflow import logging
 from tensorflow import flags
 import tensorflow.contrib.slim as slim
 
+def get_avg_pooled(model_input, num_frames):
+    num_frames = tf.cast(tf.expand_dims(num_frames, 1), tf.float32)
+    feature_size = model_input.get_shape().as_list()[2]
+
+    denominators = tf.reshape(
+        tf.tile(num_frames, [1, feature_size]), [-1, feature_size])
+    return tf.reduce_sum(model_input,
+                            axis=[1]) / denominators
+
 def SampleRandomSequence(model_input, num_frames, num_samples):
   """Samples a random sequence of frames of size num_samples.
 
@@ -93,3 +102,27 @@ def FramePooling(frames, method, **unused_params):
     return tf.reshape(frames, [-1, feature_size])
   else:
     raise ValueError("Unrecognized pooling method: %s" % method)
+
+def make_fully_connected_net(input_, sizes, vocab_size, l2_penalty):
+    layers = []
+    for size in sizes:
+        prev = layers[-1] if len(layers) else input_
+        layers.append(
+            slim.fully_connected(
+                prev,
+                size,
+                weights_regularizer=slim.l2_regularizer(l2_penalty)
+            )
+        )
+    return slim.fully_connected(
+        layers[-1] if len(layers) else input_,
+        vocab_size,
+        activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty)
+    )
+
+def make_conv_relu_pool(input_, conv_size, pool_size, num_channels):
+    input_shape = input_.get_shape().as_list()
+    conv = slim.conv2d(input_, num_channels, [conv_size, 1])
+    return tf.nn.max_pool(
+        conv, [1, pool_size, 1, 1], [1, pool_size, 1, 1], 'SAME')

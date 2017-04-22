@@ -47,15 +47,6 @@ flags.DEFINE_string("video_level_classifier_model", "MoeModel",
 flags.DEFINE_integer("lstm_cells", 512, "Number of LSTM cells.")
 flags.DEFINE_integer("lstm_layers", 2, "Number of LSTM layers.")
 
-def get_avg_pooled(model_input, num_frames):
-    num_frames = tf.cast(tf.expand_dims(num_frames, 1), tf.float32)
-    feature_size = model_input.get_shape().as_list()[2]
-
-    denominators = tf.reshape(
-        tf.tile(num_frames, [1, feature_size]), [-1, feature_size])
-    return tf.reduce_sum(model_input,
-                            axis=[1]) / denominators
-
 
 class FrameLevelLogisticModel(models.BaseModel):
 
@@ -79,7 +70,7 @@ class FrameLevelLogisticModel(models.BaseModel):
       model in the 'predictions' key. The dimensions of the tensor are
       'batch_size' x 'num_classes'.
     """
-    avg_pooled = get_avg_pooled(model_input, num_frames)
+    avg_pooled = utils.get_avg_pooled(model_input, num_frames)
 
     output = slim.fully_connected(
         avg_pooled, vocab_size, activation_fn=tf.nn.sigmoid,
@@ -259,10 +250,13 @@ class AvgPoolLSTM(models.BaseModel):
         lstm_cell = tf.contrib.rnn.BasicLSTMCell(lstm_size, forget_bias=1.0)
         outputs, state = tf.nn.dynamic_rnn(lstm_cell, pooled_input,
             sequence_length=num_frames_scaled, dtype=tf.float32)
-        output = slim.fully_connected(
-            tf.transpose(outputs, perm=[1, 0, 2])[-1], vocab_size,
-            activation_fn=tf.nn.sigmoid,
-            weights_regularizer=slim.l2_regularizer(l2_penalty))
+
+        output = utils.make_fully_connected_net(
+            tf.transpose(outputs, perm=[1, 0, 2])[-1],
+            [],
+            vocab_size,
+            l2_penalty
+        )
         return {"predictions": output}
 
 class MeanLSTM(models.BaseModel):
@@ -285,23 +279,41 @@ class MeanLSTM(models.BaseModel):
         outputs, state = tf.nn.dynamic_rnn(lstm_cell, pooled_input,
             sequence_length=num_frames_scaled, dtype=tf.float32)
         lstm_out = tf.transpose(outputs, perm=[1, 0, 2])[-1]
-        mean_pooled = get_avg_pooled(model_input, num_frames)
+        mean_pooled = utils.get_avg_pooled(model_input, num_frames)
 
-        hidden1 = slim.fully_connected(
+        output = utils.make_fully_connected_net(
             tf.concat([lstm_out, mean_pooled], 1),
-            512,
-            weights_regularizer=slim.l2_regularizer(l2_penalty),
-        )
-
-        hidden2 = slim.fully_connected(
-            hidden1,
-            256,
-            weights_regularizer=slim.l2_regularizer(l2_penalty),
-        )
-
-        output = slim.fully_connected(
-            hidden2,
+            [512, 256],
             vocab_size,
-            activation_fn=tf.nn.sigmoid,
-            weights_regularizer=slim.l2_regularizer(l2_penalty))
+            l2_penalty
+        )
+        return {"predictions": output}
+
+class ConvolutionalLSTM(models.BaseModel):
+
+    def create_model(self,
+        model_input,
+        vocab_size,
+        num_frames,
+        pool_window=20,
+        l2_penalty=1e-8,
+        **unused_params):
+        input_4d = tf.transpose(tf.stack([model_input]), perm=[1, 2, 0, 3])
+
+        conv1 = utils.make_conv_relu_pool(input_4d, 3, 4, 256)
+        conv2 = utils.make_conv_relu_pool(conv1, 3, 4, 256)
+
+        lstm_size = FLAGS.lstm_cells
+        lstm_cell = tf.contrib.rnn.BasicLSTMCell(lstm_size, forget_bias=1.0)
+        outputs, state = tf.nn.dynamic_rnn(lstm_cell, tf.squeeze(conv2, 2),
+            dtype=tf.float32)
+        lstm_out = tf.transpose(outputs, perm=[1, 0, 2])[-1]
+        mean_pooled = utils.get_avg_pooled(model_input, num_frames)
+
+        output = utils.make_fully_connected_net(
+            tf.concat([lstm_out, mean_pooled], 1),
+            [784, 512, 256],
+            vocab_size,
+            l2_penalty
+        )
         return {"predictions": output}
