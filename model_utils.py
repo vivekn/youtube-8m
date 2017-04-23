@@ -124,6 +124,62 @@ def make_fully_connected_net(input_, sizes, vocab_size,
         weights_regularizer=slim.l2_regularizer(l2_penalty)
     )
 
+def make_fcnet_with_skips(input_, sizes, skip_conns, vocab_size, l2_penalty):
+    """
+    Adds skip connections between layers based on the parameter `skip_conns`,
+    which should be a list of pairs. A connection will be added from the
+    output of the source layer to the output of the target layer. The outputs
+    will be summed before passing to the next layer. The input will be index 0
+    and the layers start from 1.
+
+    If there is a mismatch between the output size of the source and target
+    layers, a linear projection layer will be added. Batch normalization is
+    also enabled for the layers.
+    """
+    skips = {}
+    for (s, e) in skip_conns:
+        assert s < e, "Connections should be feedforward"
+        if s in skips:
+            skips[s].add(e)
+        else:
+            skips[s] = set([e])
+    input_size = input_.get_shape().as_list()[1]
+    layers = []
+
+    def get_layer_and_size(i):
+        return (input_, input_size) if i == 0 else (layers[i-1], sizes[i-1])
+
+    for i, size in enumerate(sizes):
+        prev = layers[-1] if len(layers) else input_
+        layers.append(
+            slim.fully_connected(
+                prev,
+                size,
+                weights_regularizer=slim.l2_regularizer(l2_penalty),
+                normalizer_fn=slim.batch_norm
+            )
+        )
+
+        # Check if there is an incoming connection
+        if (i+1) in skips and len(skips[i+1]):
+            for source in skips[i+1]:
+                source_layer, source_size = get_layer_and_size(source)
+                if source_size == size:
+                    layers[-1] = tf.add(layers[-1], source_layer)
+                else:
+                    projection = slim.fully_connected(source_layer, size,
+                        activation_fn=None) # linear layer
+                    layers[-1] = tf.add(layers[-1], projection)
+
+
+    return slim.fully_connected(
+        layers[-1] if len(layers) else input_,
+        vocab_size,
+        activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty)
+    )
+
+
 def make_conv_relu_pool(input_, conv_size, pool_size, num_channels,
     batch_norm=False):
     input_shape = input_.get_shape().as_list()
