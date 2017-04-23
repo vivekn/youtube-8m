@@ -103,26 +103,33 @@ def FramePooling(frames, method, **unused_params):
   else:
     raise ValueError("Unrecognized pooling method: %s" % method)
 
-def make_fully_connected_net(input_, sizes, vocab_size, l2_penalty):
+def make_fully_connected_net(input_, sizes, vocab_size,
+    l2_penalty, batch_norm=False):
     layers = []
+    normalizer = slim.batch_norm if batch_norm else None
     for size in sizes:
         prev = layers[-1] if len(layers) else input_
         layers.append(
             slim.fully_connected(
                 prev,
                 size,
-                weights_regularizer=slim.l2_regularizer(l2_penalty)
+                weights_regularizer=slim.l2_regularizer(l2_penalty),
+                normalizer_fn=normalizer
             )
         )
     return slim.fully_connected(
         layers[-1] if len(layers) else input_,
         vocab_size,
         activation_fn=tf.nn.sigmoid,
-        weights_regularizer=slim.l2_regularizer(l2_penalty)
+        weights_regularizer=slim.l2_regularizer(l2_penalty),
+        normalizer_fn=normalizer
     )
 
-def make_conv_relu_pool(input_, conv_size, pool_size, num_channels):
+def make_conv_relu_pool(input_, conv_size, pool_size, num_channels,
+    batch_norm=False):
     input_shape = input_.get_shape().as_list()
-    conv = slim.conv2d(input_, num_channels, [conv_size, 1])
+    normalizer = slim.batch_norm if batch_norm else None
+    conv = slim.conv2d(input_, num_channels, [conv_size, 1],
+        normalizer_fn=normalizer)
     return tf.nn.max_pool(
         conv, [1, pool_size, 1, 1], [1, pool_size, 1, 1], 'SAME')
