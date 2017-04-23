@@ -77,6 +77,13 @@ class MLPModel384(models.BaseModel):
             [784, 512, 384], vocab_size, l2_penalty)
         return {"predictions": output}
 
+class DeepMLPModel(models.BaseModel):
+    def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+        output = model_utils.make_fully_connected_net(model_input,
+            [784, 512, 512, 512, 256], vocab_size, l2_penalty)
+        return {"predictions": output}
+
+
 class MoeModel(models.BaseModel):
   """A softmax over a mixture of logistic models (with L2 regularization)."""
 
