@@ -139,15 +139,12 @@ def make_fcnet_with_skips(input_, sizes, skip_conns, vocab_size, l2_penalty):
     skips = {}
     for (s, e) in skip_conns:
         assert s < e, "Connections should be feedforward"
-        if s in skips:
-            skips[s].add(e)
+        if e in skips:
+            skips[e].add(s)
         else:
-            skips[s] = set([e])
+            skips[e] = set([s])
     input_size = input_.get_shape().as_list()[1]
     layers = []
-
-    def get_layer_and_size(i):
-        return (input_, input_size) if i == 0 else (layers[i-1], sizes[i-1])
 
     for i, size in enumerate(sizes):
         prev = layers[-1] if len(layers) else input_
@@ -163,7 +160,8 @@ def make_fcnet_with_skips(input_, sizes, skip_conns, vocab_size, l2_penalty):
         # Check if there is an incoming connection
         if (i+1) in skips and len(skips[i+1]):
             for source in skips[i+1]:
-                source_layer, source_size = get_layer_and_size(source)
+                source_layer = input_ if source == 0 else layers[source-1]
+                source_size = input_size if source == 0 else sizes[source-1]
                 if source_size == size:
                     layers[-1] = tf.add(layers[-1], source_layer)
                 else:
