@@ -319,7 +319,7 @@ class ConvolutionalLSTM(models.BaseModel):
         return {"predictions": output}
 
 
-class ConvolutionalLSTMV2(models.BaseModel):
+class ConvolutionalLSTMSmall(models.BaseModel):
 
     def create_model(self,
         model_input,
@@ -330,21 +330,19 @@ class ConvolutionalLSTMV2(models.BaseModel):
         **unused_params):
         input_4d = tf.transpose(tf.stack([model_input]), perm=[1, 2, 0, 3])
 
-        conv1 = utils.make_conv_relu_pool(input_4d, 3, 4, 256)
-        conv2 = utils.make_conv_relu_pool(conv1, 3, 4, 256)
-        conv3 = utils.make_conv_relu_pool(conv1, 3, 4, 256)
+        conv1 = utils.make_conv_relu_pool(input_4d, 3, 4, 64, batch_norm=True)
+        conv2 = utils.make_conv_relu_pool(conv1, 3, 4, 64, batch_norm=True)
+        conv3 = utils.make_conv_relu_pool(conv1, 3, 4, 64, batch_norm=True)
 
         lstm_size = FLAGS.lstm_cells
-        lstm_cell = tf.contrib.rnn.BasicLSTMCell(lstm_size, forget_bias=1.0)
+        lstm_cell = tf.contrib.rnn.LSTMCell(lstm_size, forget_bias=1.0,
+            use_peepholes=True)
         outputs, state = tf.nn.dynamic_rnn(lstm_cell, tf.squeeze(conv3, 2),
             dtype=tf.float32)
         lstm_out = tf.transpose(outputs, perm=[1, 0, 2])[-1]
         mean_pooled = utils.get_avg_pooled(model_input, num_frames)
 
-        output = utils.make_fully_connected_net(
+        output = model_utils.make_fcnet_with_skips(
             tf.concat([lstm_out, mean_pooled], 1),
-            [784, 512, 256],
-            vocab_size,
-            l2_penalty
-        )
+            [784, 512, 512, 512, 256], [(0, 3), (2, 4)], vocab_size, l2_penalty)
         return {"predictions": output}
