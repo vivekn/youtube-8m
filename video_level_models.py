@@ -18,6 +18,7 @@ import math
 import models
 import tensorflow as tf
 import utils
+import model_utils
 
 from tensorflow import flags
 import tensorflow.contrib.slim as slim
@@ -60,14 +61,15 @@ class MLPModel(models.BaseModel):
       A dictionary with a tensor containing the probability predictions of the
       model in the 'predictions' key. The dimensions of the tensor are
       batch_size x num_classes."""
-    layer1_out = slim.fully_connected(model_input, 512,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    layer2_out = slim.fully_connected(layer1_out, 256,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    output = slim.fully_connected(
-        layer2_out, vocab_size, activation_fn=tf.nn.sigmoid,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    output = model_utils.make_fully_connected_net(model_input,
+        [512, 256], vocab_size, l2_penalty)
     return {"predictions": output}
+
+class MLPModelV2(models.BaseModel):
+    def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+        output = model_utils.make_fully_connected_net(model_input,
+            [784, 512, 256], vocab_size, l2_penalty)
+        return {"predictions": output}
 
 class MoeModel(models.BaseModel):
   """A softmax over a mixture of logistic models (with L2 regularization)."""
