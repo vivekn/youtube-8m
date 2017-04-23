@@ -180,7 +180,6 @@ def make_fcnet_with_skips(input_, sizes, skip_conns, vocab_size, l2_penalty):
 
 def make_conv_relu_pool(input_, conv_size, pool_size, num_channels,
     batch_norm=False):
-    input_shape = input_.get_shape().as_list()
     normalizer = slim.batch_norm if batch_norm else None
     conv = slim.conv2d(input_, num_channels, [conv_size, 1],
         normalizer_fn=normalizer)

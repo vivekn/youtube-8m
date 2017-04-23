@@ -332,7 +332,7 @@ class ConvolutionalLSTMSmall(models.BaseModel):
 
         conv1 = utils.make_conv_relu_pool(input_4d, 3, 4, 64, batch_norm=True)
         conv2 = utils.make_conv_relu_pool(conv1, 3, 4, 64, batch_norm=True)
-        conv3 = utils.make_conv_relu_pool(conv1, 3, 4, 64, batch_norm=True)
+        conv3 = utils.make_conv_relu_pool(conv2, 3, 4, 64, batch_norm=True)
 
         lstm_size = FLAGS.lstm_cells
         lstm_cell = tf.contrib.rnn.LSTMCell(lstm_size, forget_bias=1.0,
@@ -342,7 +342,7 @@ class ConvolutionalLSTMSmall(models.BaseModel):
         lstm_out = tf.transpose(outputs, perm=[1, 0, 2])[-1]
         mean_pooled = utils.get_avg_pooled(model_input, num_frames)
 
-        output = model_utils.make_fcnet_with_skips(
+        output = utils.make_fcnet_with_skips(
             tf.concat([lstm_out, mean_pooled], 1),
             [784, 512, 512, 512, 256], [(0, 3), (2, 4)], vocab_size, l2_penalty)
         return {"predictions": output}
