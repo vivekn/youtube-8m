@@ -89,7 +89,7 @@ submit training $JOB_NAME \
 --num_epochs=3
 
 #5 layer model with Batch normalization
-JOB_NAME=yt8m_train_5layer_$(date +%Y%m%d_%H%M%S);
+JOB_NAME=yt8m_train_batchnorm_$(date +%Y%m%d_%H%M%S);
 gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
@@ -97,7 +97,7 @@ submit training $JOB_NAME \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
 --model=BatchNormMLP \
---train_dir=$BUCKET_NAME/yt8m_train_video_level_batchnorm_audio_model \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_batchnorm2_audio_model \
 --feature_names="mean_rgb, mean_audio" \
 --feature_sizes="1024, 128" \
 --base_learning_rate="0.0002" \

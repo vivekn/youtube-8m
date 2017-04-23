@@ -121,8 +121,7 @@ def make_fully_connected_net(input_, sizes, vocab_size,
         layers[-1] if len(layers) else input_,
         vocab_size,
         activation_fn=tf.nn.sigmoid,
-        weights_regularizer=slim.l2_regularizer(l2_penalty),
-        normalizer_fn=normalizer
+        weights_regularizer=slim.l2_regularizer(l2_penalty)
     )
 
 def make_conv_relu_pool(input_, conv_size, pool_size, num_channels,
