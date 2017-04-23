@@ -89,7 +89,7 @@ class BatchNormMLP(models.BaseModel):
             [784, 512, 512, 512, 256], vocab_size, l2_penalty, batch_norm=True)
         return {"predictions": output}
 
-class SkipConnections(models.BaseModel)
+class SkipConnections(models.BaseModel):
     def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
         output = model_utils.make_fcnet_with_skips(model_input,
             [784, 512, 512, 512, 256], [(0, 3), (2, 4)], vocab_size, l2_penalty)
