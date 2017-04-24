@@ -94,7 +94,7 @@ submit training $JOB_NAME \
 --num_epochs=10
 
 # DeepSkip
-JOB_NAME=yt8m_train_skipconn_$(date +%Y%m%d_%H%M%S);
+JOB_NAME=yt8m_train_deepskip_$(date +%Y%m%d_%H%M%S);
 gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
@@ -105,7 +105,22 @@ submit training $JOB_NAME \
 --train_dir=$BUCKET_NAME/yt8m_train_video_level_deepskip_audio_model \
 --feature_names="mean_rgb, mean_audio" \
 --feature_sizes="1024, 128" \
---base_learning_rate="0.0002" \
+--base_learning_rate="0.001" \
+--num_epochs=25
+
+# DeeperSkip
+JOB_NAME=yt8m_train_deeperskip_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
+--model=DeeperSkip \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_deeperskip_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.001" \
 --num_epochs=3
 
 JOB_TO_EVAL=yt8m_train_video_level_mlp_audio_model
@@ -133,6 +148,18 @@ submit training $JOB_NAME \
 --output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions.csv
 
 JOB_TO_EVAL=yt8m_train_video_level_skipconn_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_skip.csv
+
+JOB_TO_EVAL=yt8m_train_video_level_deepskip_audio_model
 JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.inference \
