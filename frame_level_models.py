@@ -346,3 +346,10 @@ class ConvolutionalLSTMSmall(models.BaseModel):
             tf.concat([lstm_out, mean_pooled], 1),
             [784, 512, 512, 512, 256], [(0, 3), (2, 4)], vocab_size, l2_penalty)
         return {"predictions": output}
+
+class FramePooler(models.BaseModel):
+    """
+    Simple 9 layer fully connected model with inputs as
+    (raw_features, max_pooled, min_pooled, avg_pooled)
+    """
+    pass

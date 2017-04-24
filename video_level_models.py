@@ -102,6 +102,13 @@ class DeepSkip(models.BaseModel):
             [(0, 3), (2, 4), (4, 6), (6, 8)], vocab_size, l2_penalty)
         return {"predictions": output}
 
+class BigNN(models.BaseModel):
+    def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+        output = model_utils.make_fcnet_with_skips(model_input,
+            [1024] + [768]*8,
+            [(0, 3), (2, 4), (4, 6), (6, 8)], vocab_size, l2_penalty)
+        return {"predictions": output}
+
 class DeeperSkip(models.BaseModel):
     def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
         output = model_utils.make_fcnet_with_skips(model_input,
