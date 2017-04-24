@@ -93,6 +93,21 @@ submit training $JOB_NAME \
 --base_learning_rate="0.0002" \
 --num_epochs=10
 
+# DeepSkip
+JOB_NAME=yt8m_train_skipconn_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
+--model=DeepSkip \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_deepskip_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.0002" \
+--num_epochs=3
+
 JOB_TO_EVAL=yt8m_train_video_level_mlp_audio_model
 JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
@@ -220,11 +235,11 @@ submit training $JOB_NAME \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord' \
 --model=ConvolutionalLSTMSmall \
---num_epochs=3 \
---train_dir=$BUCKET_NAME/yt8m_frame_level_conv_lstm_small_model \
+--num_epochs=1 \
+--train_dir=$BUCKET_NAME/yt8m_frame_level_conv_lstm_small_2_model \
 --feature_names="rgb, audio" \
 --frame_features=True \
 --feature_sizes="1024, 128" \
---batch_size=256 \
+--batch_size=512 \
 --base_learning_rate="0.0002" \
 --lstm_cells=512
