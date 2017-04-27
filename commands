@@ -131,8 +131,23 @@ submit training $JOB_NAME \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
---model=DeeperSkip \
+--model=BigNN \
 --train_dir=$BUCKET_NAME/yt8m_train_video_level_bignn_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.001" \
+--num_epochs=3
+
+# BigerNN
+JOB_NAME=yt8m_train_bignn_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
+--model=BigNN \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_biggernn_audio_model \
 --feature_names="mean_rgb, mean_audio" \
 --feature_sizes="1024, 128" \
 --base_learning_rate="0.001" \
@@ -197,6 +212,18 @@ submit training $JOB_NAME \
 --feature_sizes="1024, 128" \
 --train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
 --output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_skip3.csv
+
+JOB_TO_EVAL=yt8m_train_video_level_bignn_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_bignn.csv
 
 
 curl data.yt8m.org/download.py | shard=1,100000 partition=1/frame_level/train mirror=us python
@@ -311,4 +338,4 @@ submit training $JOB_NAME \
 --train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
 --output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_conv_small_lstm.csv \
 --frame_features=True \
---batch_size=2048
+--batch_size=1024
