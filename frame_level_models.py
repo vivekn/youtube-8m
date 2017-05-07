@@ -350,6 +350,21 @@ class ConvolutionalLSTMSmall(models.BaseModel):
 class FramePooler(models.BaseModel):
     """
     Simple 9 layer fully connected model with inputs as
-    (raw_features, max_pooled, min_pooled, avg_pooled)
+    (raw_features, max_pooled, min_pooled, avg_pooled, l2_norm)
     """
-    pass
+    def create_model(self,
+        model_input,
+        vocab_size,
+        num_frames,
+        l2_penalty=1e-8,
+        **unused_params):
+        avg_pooled = utils.get_avg_pooled(model_input, num_frames)
+        features = tf.concat([
+            avg_pooled,
+            utils.get_standard_dev_and_l2(model_input, num_frames, avg_pooled),
+            utils.get_min_max_pooled(model_input, num_frames),
+            tf.expand_dims(tf.to_float(num_frames), 1),
+        ], 1)
+        output = utils.make_fcnet_with_skips(features, [1024]+[768]*8,
+            [(0, 3), (2, 4), (4, 6), (6, 8)], vocab_size, l2_penalty)
+        return {"predictions": output}

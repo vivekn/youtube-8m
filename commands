@@ -136,22 +136,67 @@ submit training $JOB_NAME \
 --feature_names="mean_rgb, mean_audio" \
 --feature_sizes="1024, 128" \
 --base_learning_rate="0.001" \
---num_epochs=3
+--num_epochs=25
 
-# BigerNN
-JOB_NAME=yt8m_train_bignn_$(date +%Y%m%d_%H%M%S);
+#bignn valid *a*/*.tfrecord
+JOB_NAME=yt8m_train_bignn_valid_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/*a*/*.tfrecord' \
+--model=BigNN \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_bignn_valid_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.001" \
+--num_epochs=25
+
+# BiggerNN
+JOB_NAME=yt8m_train_biggernn_$(date +%Y%m%d_%H%M%S);
 gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
---model=BigNN \
---train_dir=$BUCKET_NAME/yt8m_train_video_level_biggernn_audio_model \
+--model=BiggerNN \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_biggernn2_audio_model \
 --feature_names="mean_rgb, mean_audio" \
 --feature_sizes="1024, 128" \
 --base_learning_rate="0.001" \
 --num_epochs=3
+
+# BiggerNN valid
+JOB_NAME=yt8m_train_biggernn_valid_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/*a*/*.tfrecord' \
+--model=BigNN \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_biggernn_valid_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.001" \
+--num_epochs=8
+
+# BigerNNMoreEpochs
+JOB_NAME=yt8m_train_biggernn_more_$(date +%Y%m%d_%H%M%S);
+gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.train \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
+--model=BiggerNN \
+--train_dir=$BUCKET_NAME/yt8m_train_video_level_biggernn2_more_epochs_audio_model \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--base_learning_rate="0.001" \
+--num_epochs=100
 
 JOB_TO_EVAL=yt8m_train_video_level_mlp_audio_model
 JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
@@ -225,6 +270,53 @@ submit training $JOB_NAME \
 --train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
 --output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_bignn.csv
 
+JOB_TO_EVAL=yt8m_train_video_level_bignn_valid_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_bignn_valid.csv
+
+JOB_TO_EVAL=yt8m_train_video_level_biggernn2_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_biggernn.csv
+
+JOB_TO_EVAL=yt8m_train_video_level_biggernn_valid_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_biggernn_valid.csv
+
+JOB_TO_EVAL=yt8m_train_video_level_biggernn2_more_epochs_audio_model
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+submit training $JOB_NAME \
+--package-path=youtube-8m --module-name=youtube-8m.inference \
+--staging-bucket=$BUCKET_NAME --region=us-east1 \
+--config=youtube-8m/cloudml-gpu.yaml \
+-- --input_data_pattern='gs://youtube8m-ml/1/video_level/test/test*.tfrecord' \
+--feature_names="mean_rgb, mean_audio" \
+--feature_sizes="1024, 128" \
+--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions_biggernn_more.csv
 
 curl data.yt8m.org/download.py | shard=1,100000 partition=1/frame_level/train mirror=us python
 

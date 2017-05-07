@@ -29,6 +29,20 @@ def get_avg_pooled(model_input, num_frames):
     return tf.reduce_sum(model_input,
                             axis=[1]) / denominators
 
+def get_standard_dev_and_l2(model_input, num_frames, avg_pooled):
+    term1 = get_avg_pooled(tf.pow(model_input, 2.0), num_frames)
+    term2 = tf.pow(avg_pooled, 2.0)
+    l2 = tf.pow(term1, 0.5)
+    return tf.concat([tf.pow(term1 - term2, 0.5), l2], 1)
+
+def get_min_max_pooled(model_input, num_frames):
+    mask = tf.to_float(tf.equal(model_input, 0.0))
+    min_mask = mask * 1e30
+    max_mask = mask * -1e30
+    min_pooled = tf.reduce_min(min_mask + model_input, axis=[1])
+    max_pooled = tf.reduce_max(max_mask + model_input, axis=[1])
+    return tf.concat([min_pooled, max_pooled], 1)
+
 def SampleRandomSequence(model_input, num_frames, num_samples):
   """Samples a random sequence of frames of size num_samples.
 
