@@ -394,7 +394,6 @@ class Trainer(object):
         labels = tf.get_collection("labels")[0]
         train_op = tf.get_collection("train_op")[0]
         init_op = tf.global_variables_initializer()
-        input_batch_op = tf.get_collection("input_batch")
 
     sv = tf.train.Supervisor(
         graph,
